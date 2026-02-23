@@ -1,0 +1,12 @@
+{
+  "personalInfo": {
+    "name": "Zahra Mazhari",
+    "title": "توسعه دهنده وبسایت و نرم افزار",
+    "about": "دانشجوی مهندسی کامپیوتر..."
+  },
+  
+  "admin": {
+    "username": "admin",
+    "password": "admin123"
+  }
+}
