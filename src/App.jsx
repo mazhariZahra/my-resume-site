@@ -21,6 +21,8 @@ function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/admin" element={<AdminPage />} />
+                {/* مسیر مخفی برای ورود - می‌تونید اسم دلخواه بذارید */}
+                <Route path="/secret-admin" element={<LoginPage />} />
               </Routes>
             </main>
             <Footer />
