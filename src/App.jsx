@@ -7,6 +7,7 @@ import Footer from './components/Layout/Footer';
 import HomePage from './pages/HomePage';
 import AdminPage from './pages/AdminPage';
 import LoginPage from './pages/LoginPage';
+import SyncPage from './pages/SyncPage';
 
 function App() {
   return (
@@ -18,11 +19,17 @@ function App() {
             <Navbar />
             <main className="container mx-auto px-4 py-8 relative z-10 pt-20">
               <Routes>
+                {/* مسیرهای اصلی */}
                 <Route path="/" element={<HomePage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/admin" element={<AdminPage />} />
-                {/* مسیر مخفی برای ورود - می‌تونید اسم دلخواه بذارید */}
+                
+                {/* مسیرهای مخفی و همگام‌سازی */}
                 <Route path="/secret-admin" element={<LoginPage />} />
+                <Route path="/sync" element={<SyncPage />} />
+                
+                {/* مسیر پیش‌فرض برای صفحات پیدا نشده - هدایت به صفحه اصلی */}
+                <Route path="*" element={<HomePage />} />
               </Routes>
             </main>
             <Footer />

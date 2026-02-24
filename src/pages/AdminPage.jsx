@@ -21,13 +21,17 @@ import {
   CalendarIcon,
   CameraIcon,
   ArrowPathIcon,
-  LinkIcon
+  LinkIcon,
+  ArrowDownTrayIcon,
+  ArrowUpTrayIcon,
+  CloudArrowUpIcon,
+  ShareIcon
 } from '@heroicons/react/24/outline';
 import { onlineStorage } from '../services/api';
 
 const AdminPage = () => {
   const { user } = useAuth();
-  const { data, updateData } = useData();
+  const { data, updateData, updateAllData } = useData();
   const [activeTab, setActiveTab] = useState('personal');
   const [editingItem, setEditingItem] = useState(null);
   const [editingIndex, setEditingIndex] = useState(null);
@@ -58,8 +62,72 @@ const AdminPage = () => {
     }
   };
 
+  // خروجی JSON
+  const exportData = () => {
+    try {
+      const dataStr = JSON.stringify(data, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `resume-backup-${new Date().toLocaleDateString('fa-IR').replace(/\//g, '-')}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      
+      setSaveMessage('✅ فایل پشتیبان با موفقیت ساخته شد');
+      setTimeout(() => setSaveMessage(''), 3000);
+    } catch (error) {
+      setSaveMessage('❌ خطا در ساخت فایل پشتیبان');
+      setTimeout(() => setSaveMessage(''), 3000);
+    }
+  };
+
+  // ورودی JSON
+  const importData = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const importedData = JSON.parse(e.target.result);
+        updateAllData(importedData);
+        setSaveMessage('✅ داده‌ها با موفقیت وارد شد');
+        setTimeout(() => setSaveMessage(''), 3000);
+      } catch (error) {
+        setSaveMessage('❌ خطا در وارد کردن داده‌ها - فرمت فایل نامعتبر است');
+        setTimeout(() => setSaveMessage(''), 3000);
+      }
+    };
+    reader.readAsText(file);
+    
+    // پاک کردن مقدار input برای امکان انتخاب مجدد فایل
+    event.target.value = '';
+  };
+
+  // ساخت لینک همگام‌سازی
+  const generateSyncLink = () => {
+    try {
+      // فشرده‌سازی داده‌ها
+      const dataStr = JSON.stringify(data);
+      const compressed = btoa(encodeURIComponent(dataStr).replace(/%([0-9A-F]{2})/g, (match, p1) => 
+        String.fromCharCode('0x' + p1)
+      ));
+      
+      const syncUrl = `${window.location.origin}/sync?data=${compressed}`;
+      
+      // کپی در کلیپ‌بورد
+      navigator.clipboard.writeText(syncUrl);
+      setSaveMessage('✅ لینک همگام‌سازی کپی شد!');
+      setTimeout(() => setSaveMessage(''), 3000);
+    } catch (error) {
+      setSaveMessage('❌ خطا در ساخت لینک');
+      setTimeout(() => setSaveMessage(''), 3000);
+    }
+  };
+
   const tabs = [
-    { id: 'personal', name: '', icon: UserIcon },
+    { id: 'personal', name: 'اطلاعات شخصی', icon: UserIcon },
     { id: 'skills', name: 'مهارت‌ها', icon: CodeBracketIcon },
     { id: 'experience', name: 'سوابق شغلی', icon: BriefcaseIcon },
     { id: 'education', name: 'تحصیلات', icon: AcademicCapIcon },
@@ -74,18 +142,50 @@ const AdminPage = () => {
       className="min-h-screen py-20"
     >
       <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20">
-        {/* هدر با دکمه ریست */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-            پنل مدیریت
-          </h1>
-          <button
-            onClick={resetData}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600/20 border border-red-600 rounded-lg hover:bg-red-600/30 transition"
-          >
-            <ArrowPathIcon className="w-5 h-5" />
-            بازنشانی به حالت اولیه
-          </button>
+        {/* هدر با دکمه‌ها */}
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+              پنل مدیریت
+            </h1>
+            <button
+              onClick={resetData}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600/20 border border-red-600 rounded-lg hover:bg-red-600/30 transition"
+            >
+              <ArrowPathIcon className="w-5 h-5" />
+              بازنشانی
+            </button>
+          </div>
+
+          {/* دکمه‌های همگام‌سازی */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={exportData}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 border border-blue-600 rounded-lg hover:bg-blue-600/30 transition"
+            >
+              <ArrowDownTrayIcon className="w-5 h-5" />
+              خروجی JSON
+            </button>
+            
+            <label className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 border border-purple-600 rounded-lg hover:bg-purple-600/30 transition cursor-pointer">
+              <ArrowUpTrayIcon className="w-5 h-5" />
+              ورودی JSON
+              <input
+                type="file"
+                accept=".json,application/json"
+                onChange={importData}
+                className="hidden"
+              />
+            </label>
+
+            <button
+              onClick={generateSyncLink}
+              className="flex items-center gap-2 px-4 py-2 bg-yellow-600/20 border border-yellow-600 rounded-lg hover:bg-yellow-600/30 transition"
+            >
+              <ShareIcon className="w-5 h-5" />
+              لینک همگام‌سازی
+            </button>
+          </div>
         </div>
 
         {/* پیام ذخیره */}
@@ -256,24 +356,19 @@ const PersonalInfoForm = ({ data, onSave, uploading, setUploading }) => {
     setUploading(true);
     
     try {
-      // نمایش پیش‌نمایش موقت
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
+        setFormData({
+          ...formData,
+          profileImage: reader.result
+        });
+        setUploading(false);
       };
       reader.readAsDataURL(file);
-
-      // آپلود عکس به سرور
-      const imageUrl = await onlineStorage.uploadImageToCloudinary(file);
-      
-      setFormData({
-        ...formData,
-        profileImage: imageUrl
-      });
     } catch (error) {
       console.error('خطا در آپلود عکس:', error);
       alert('خطا در آپلود عکس. لطفاً دوباره تلاش کنید.');
-    } finally {
       setUploading(false);
     }
   };
@@ -289,6 +384,10 @@ const PersonalInfoForm = ({ data, onSave, uploading, setUploading }) => {
                 src={imagePreview} 
                 alt="پروفایل"
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(formData.name) + '&size=128&background=8b5cf6&color=fff';
+                }}
               />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
@@ -297,7 +396,6 @@ const PersonalInfoForm = ({ data, onSave, uploading, setUploading }) => {
             )}
           </div>
           
-          {/* دکمه آپلود عکس */}
           <label className="absolute bottom-0 right-0 bg-purple-600 rounded-full p-2 cursor-pointer hover:bg-purple-700 transition border-2 border-white">
             <CameraIcon className="w-4 h-4 text-white" />
             <input
@@ -319,25 +417,6 @@ const PersonalInfoForm = ({ data, onSave, uploading, setUploading }) => {
         <div className="text-center">
           <p className="text-sm text-gray-400">برای تغییر عکس، روی دکمه دوربین کلیک کنید</p>
           <p className="text-xs text-gray-500 mt-1">فرمت‌های مجاز: JPG، PNG، GIF</p>
-        </div>
-
-        {/* فیلد لینک عکس (دستی) */}
-        <div className="w-full mt-4">
-          <label className="block text-sm text-gray-300 mb-2">یا لینک عکس را وارد کنید</label>
-          <div className="flex gap-2">
-            <input
-              type="url"
-              value={formData.profileImage || ''}
-              onChange={(e) => {
-                setFormData({...formData, profileImage: e.target.value});
-                setImagePreview(e.target.value);
-              }}
-              className="flex-1 px-4 py-2 bg-white/10 rounded-lg border border-white/20 focus:border-purple-500 focus:outline-none"
-              placeholder="https://example.com/image.jpg"
-              dir="ltr"
-            />
-            <LinkIcon className="w-5 h-5 text-gray-400 self-center" />
-          </div>
         </div>
       </div>
 
@@ -415,7 +494,7 @@ const PersonalInfoForm = ({ data, onSave, uploading, setUploading }) => {
             value={formData.personalDetails.age}
             onChange={(e) => setFormData({
               ...formData, 
-              personalDetails: {...formData.personalDetails, age: parseInt(e.target.value)}
+              personalDetails: {...formData.personalDetails, age: parseInt(e.target.value) || 0}
             })}
             className="w-full px-4 py-2 bg-white/10 rounded-lg border border-white/20 focus:border-purple-500 focus:outline-none"
           />
@@ -466,10 +545,10 @@ const SkillsForm = ({ data, onSave }) => {
   const [newSoftSkill, setNewSoftSkill] = useState('');
 
   const addSkill = () => {
-    if (newSkill.name) {
+    if (newSkill.name.trim()) {
       setSkills({
         ...skills,
-        technical: [...skills.technical, newSkill]
+        technical: [...skills.technical, { ...newSkill, name: newSkill.name.trim() }]
       });
       setNewSkill({ name: '', level: 50, category: 'frontend' });
     }
@@ -487,10 +566,10 @@ const SkillsForm = ({ data, onSave }) => {
   };
 
   const addSoftSkill = () => {
-    if (newSoftSkill && !skills.soft.includes(newSoftSkill)) {
+    if (newSoftSkill.trim() && !skills.soft.includes(newSoftSkill.trim())) {
       setSkills({
         ...skills,
-        soft: [...skills.soft, newSoftSkill]
+        soft: [...skills.soft, newSoftSkill.trim()]
       });
       setNewSoftSkill('');
     }
@@ -503,7 +582,7 @@ const SkillsForm = ({ data, onSave }) => {
 
   const editSkill = (index, field, value) => {
     const updated = [...skills.technical];
-    updated[index][field] = field === 'level' ? parseInt(value) : value;
+    updated[index][field] = field === 'level' ? parseInt(value) || 0 : value;
     setSkills({...skills, technical: updated});
   };
 
@@ -580,7 +659,7 @@ const SkillsForm = ({ data, onSave }) => {
               min="0"
               max="100"
               value={newSkill.level}
-              onChange={(e) => setNewSkill({...newSkill, level: parseInt(e.target.value)})}
+              onChange={(e) => setNewSkill({...newSkill, level: parseInt(e.target.value) || 0})}
               className="w-20 px-3 py-2 bg-white/10 rounded-lg border border-white/20"
               placeholder="درصد"
             />
@@ -713,19 +792,19 @@ const ListForm = ({
   };
 
   const addTechnology = () => {
-    if (techInput) {
+    if (techInput.trim()) {
       const target = editingItem || newItem;
       const currentTechs = target.technologies || [];
-      if (!currentTechs.includes(techInput)) {
+      if (!currentTechs.includes(techInput.trim())) {
         if (editingItem) {
           setEditingItem({
             ...editingItem,
-            technologies: [...currentTechs, techInput]
+            technologies: [...currentTechs, techInput.trim()]
           });
         } else {
           setNewItem({
             ...newItem,
-            technologies: [...currentTechs, techInput]
+            technologies: [...currentTechs, techInput.trim()]
           });
         }
       }
@@ -748,19 +827,19 @@ const ListForm = ({
   };
 
   const addFeature = () => {
-    if (featureInput) {
+    if (featureInput.trim()) {
       const target = editingItem || newItem;
       const currentFeatures = target.features || [];
-      if (!currentFeatures.includes(featureInput)) {
+      if (!currentFeatures.includes(featureInput.trim())) {
         if (editingItem) {
           setEditingItem({
             ...editingItem,
-            features: [...currentFeatures, featureInput]
+            features: [...currentFeatures, featureInput.trim()]
           });
         } else {
           setNewItem({
             ...newItem,
-            features: [...currentFeatures, featureInput]
+            features: [...currentFeatures, featureInput.trim()]
           });
         }
       }
@@ -783,18 +862,18 @@ const ListForm = ({
   };
 
   const addGrade = () => {
-    if (gradeInput.course && gradeInput.grade) {
+    if (gradeInput.course.trim() && gradeInput.grade.trim()) {
       const target = editingItem || newItem;
       const currentGrades = target.grades || [];
       if (editingItem) {
         setEditingItem({
           ...editingItem,
-          grades: [...currentGrades, gradeInput]
+          grades: [...currentGrades, { ...gradeInput }]
         });
       } else {
         setNewItem({
           ...newItem,
-          grades: [...currentGrades, gradeInput]
+          grades: [...currentGrades, { ...gradeInput }]
         });
       }
       setGradeInput({ course: '', grade: '' });
